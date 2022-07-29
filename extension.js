@@ -76,8 +76,11 @@ export default {
                 "timeout": 0,
             };
 
-            var query = prompt("What mood | mode | theme do you want?", defaultQuery);
-            urlUnsplash += "?query=" + query + "&w=" + width + "&orientation=" + display + "";
+            if (mode == "prompt") {
+                var query = prompt("What mood | mode | theme do you want?", defaultQuery);
+                urlUnsplash += "?query=" + query + "";
+            }
+            urlUnsplash += "&w=" + width + "&orientation=" + display + "";
 
             return new Promise((resolve) => $.ajax(settings).done(async function (response) {
                 var jsonUnsplash = JSON.stringify(response);
