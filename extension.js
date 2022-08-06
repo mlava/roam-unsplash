@@ -62,37 +62,60 @@ export default {
         }
 
         async function fetchUnsplash() {
-            const accessKey = extensionAPI.settings.get("unsplash-accessKey");
-            const width = extensionAPI.settings.get("unsplash-width");
-            const display = extensionAPI.settings.get("unsplash-display");
-            const mode = extensionAPI.settings.get("unsplash-mode");
-            const defaultQuery = "relaxed";
-            var urlUnsplash = "https://api.unsplash.com/photos/random?client_id=" + accessKey + "";
+            if (!extensionAPI.settings.get("unsplash-accessKey")) {
+                sendConfigAlert();
+            } else if (!extensionAPI.settings.get("unsplash-width")) {
+                sendConfigAlert();
+            } else if (!extensionAPI.settings.get("unsplash-display")) {
+                sendConfigAlert();
+            } else if (!extensionAPI.settings.get("unsplash-mode")) {
+                sendConfigAlert();
+            } else {
+                const accessKey = extensionAPI.settings.get("unsplash-accessKey");
+                const width = extensionAPI.settings.get("unsplash-width");
+                const display = extensionAPI.settings.get("unsplash-display");
+                const mode = extensionAPI.settings.get("unsplash-mode");
+                const defaultQuery = "relaxed";
+                var urlUnsplash = "https://api.unsplash.com/photos/random?client_id=" + accessKey + "";
 
-            document.unsplashURL = "";
-            const settings = {
-                "url": urlUnsplash,
-                "method": "GET",
-                "timeout": 0,
+                document.unsplashURL = "";
+
+                if (mode == "prompt") {
+                    var query = prompt("What mood | mode | theme do you want?", defaultQuery);
+                    urlUnsplash += "&query=" + query + "";
+                }
+                urlUnsplash += "&w=" + width + "&orientation=" + display + "";
+                /*const settings = {
+                    "url": urlUnsplash,
+                    "method": "GET",
+                    "timeout": 0,
+                };*/
+
+                const response = await fetch(urlUnsplash);
+                const unsplash = await response.json();
+                console.error(unsplash);
+                if (response.ok) {
+                    var string = "![](" + unsplash.urls.regular + ")\n'" + query + "' Image by [[" + unsplash.user.name + "]] at [Unsplash](" + unsplash.user.links.html + ")";
+                    return (string);
+                } else {
+                    console.log(data);
+                }
+                /*
+                                return new Promise((resolve) => $.ajax(settings).done(async function (response) {
+                                    var jsonUnsplash = JSON.stringify(response);
+                                    var unsplash = JSON.parse(jsonUnsplash);
+                                    var string = "![](" + unsplash.urls.regular + ")\n'" + query + "' Image by [[" + unsplash.user.name + "]] at [Unsplash](" + unsplash.user.links.html + ")";
+                                    resolve(string);
+                                }));*/
             };
-
-            if (mode == "prompt") {
-                var query = prompt("What mood | mode | theme do you want?", defaultQuery);
-                urlUnsplash += "?query=" + query + "";
-            }
-            urlUnsplash += "&w=" + width + "&orientation=" + display + "";
-
-            return new Promise((resolve) => $.ajax(settings).done(async function (response) {
-                var jsonUnsplash = JSON.stringify(response);
-                var unsplash = JSON.parse(jsonUnsplash);
-                var string = "![](" + unsplash.urls.regular + ")\n'" + query + "' Image by [[" + unsplash.user.name + "]] at [Unsplash](" + unsplash.user.links.html + ")";
-                resolve(string);
-            }));
-        };
+        }
     },
     onunload: () => {
         window.roamAlphaAPI.ui.commandPalette.removeCommand({
             label: 'Unsplash import'
         });
+        if (window.roamjs?.extension?.smartblocks) {
+            window.roamjs.extension.smartblocks.unregisterCommand("UNSPLASH");
+        }
     }
 }
