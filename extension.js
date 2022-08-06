@@ -85,11 +85,6 @@ export default {
                     urlUnsplash += "&query=" + query + "";
                 }
                 urlUnsplash += "&w=" + width + "&orientation=" + display + "";
-                /*const settings = {
-                    "url": urlUnsplash,
-                    "method": "GET",
-                    "timeout": 0,
-                };*/
 
                 const response = await fetch(urlUnsplash);
                 const unsplash = await response.json();
@@ -100,13 +95,6 @@ export default {
                 } else {
                     console.log(data);
                 }
-                /*
-                                return new Promise((resolve) => $.ajax(settings).done(async function (response) {
-                                    var jsonUnsplash = JSON.stringify(response);
-                                    var unsplash = JSON.parse(jsonUnsplash);
-                                    var string = "![](" + unsplash.urls.regular + ")\n'" + query + "' Image by [[" + unsplash.user.name + "]] at [Unsplash](" + unsplash.user.links.html + ")";
-                                    resolve(string);
-                                }));*/
             };
         }
     },
