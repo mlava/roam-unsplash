@@ -107,3 +107,7 @@ export default {
         }
     }
 }
+
+function sendConfigAlert() {
+    alert("Please set all required configuration settings via the Roam Depot tab.");
+}
