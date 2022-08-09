@@ -3,7 +3,7 @@ const config = {
     settings: [
         {
             id: "unsplash-accessKey",
-            name: "Unsplash Access key",
+            name: "Unsplash Access key *",
             description: "Your Access Key from https://unsplash.com/oauth/applications",
             action: { type: "input", placeholder: "Add Unsplash Access key here" },
         },
@@ -11,7 +11,7 @@ const config = {
             id: "unsplash-width",
             name: "Image width",
             description: "Preferred width of image in pixels",
-            action: { type: "input", placeholder: "width in pixels" },
+            action: { type: "input", placeholder: "600" },
         },
         {
             id: "unsplash-display",
@@ -62,40 +62,76 @@ export default {
         }
 
         async function fetchUnsplash() {
-            if (!extensionAPI.settings.get("unsplash-accessKey")) {
-                sendConfigAlert();
-            } else if (!extensionAPI.settings.get("unsplash-width")) {
-                sendConfigAlert();
-            } else if (!extensionAPI.settings.get("unsplash-display")) {
-                sendConfigAlert();
-            } else if (!extensionAPI.settings.get("unsplash-mode")) {
-                sendConfigAlert();
-            } else {
-                const accessKey = extensionAPI.settings.get("unsplash-accessKey");
-                const width = extensionAPI.settings.get("unsplash-width");
-                const display = extensionAPI.settings.get("unsplash-display");
-                const mode = extensionAPI.settings.get("unsplash-mode");
-                const defaultQuery = "relaxed";
-                var urlUnsplash = "https://api.unsplash.com/photos/random?client_id=" + accessKey + "";
-
-                document.unsplashURL = "";
-
-                if (mode == "prompt") {
-                    var query = prompt("What mood | mode | theme do you want?", defaultQuery);
-                    urlUnsplash += "&query=" + query + "";
-                }
-                urlUnsplash += "&w=" + width + "&orientation=" + display + "";
-
-                const response = await fetch(urlUnsplash);
-                const unsplash = await response.json();
-                console.error(unsplash);
-                if (response.ok) {
-                    var string = "![](" + unsplash.urls.regular + ")\n'" + query + "' Image by [[" + unsplash.user.name + "]] at [Unsplash](" + unsplash.user.links.html + ")";
-                    return (string);
+            var width, display, mode, key, urlUnsplash;
+            breakme: {
+                if (!extensionAPI.settings.get("unsplash-accessKey")) {
+                    key = "API";
+                    sendConfigAlert(key);
                 } else {
-                    console.log(data);
-                }
-            };
+                    const accessKey = extensionAPI.settings.get("unsplash-accessKey");
+                    if (!extensionAPI.settings.get("unsplash-width")) {
+                        width = "600";
+                        console.log("width set to default");
+                    } else {
+                        const regexW = /^[0-9]{2,4}$/;
+                        if (extensionAPI.settings.get("unsplash-width").match(regexW)) {
+                            width = extensionAPI.settings.get("unsplash-width");
+                        } else {
+                            key = "width";
+                            sendConfigAlert(key);
+                            break breakme;
+                        }
+                    }
+                    if (!extensionAPI.settings.get("unsplash-display")) {
+                        display = "landscape";
+                        console.log("display mode set to default");
+                    } else {
+                        const regexD = /^landscape|portrait|squarish$/;
+                        if (extensionAPI.settings.get("unsplash-display").match(regexD)) {
+                            display = extensionAPI.settings.get("unsplash-display");
+                        } else {
+                            key = "display";
+                            sendConfigAlert(key);
+                            break breakme;
+                        }
+                    }
+                    if (!extensionAPI.settings.get("unsplash-mode")) {
+                        mode = "random";
+                        console.log("import mode set to default");
+                    } else {
+                        const regexM = /^random|prompt$/;
+                        if (extensionAPI.settings.get("unsplash-mode").match(regexM)) {
+                            mode = extensionAPI.settings.get("unsplash-mode");
+                        } else {
+                            key = "mode";
+                            sendConfigAlert(key);
+                            break breakme;
+                        }
+                    }
+                    const defaultQuery = "relaxed";
+                    urlUnsplash = "https://api.unsplash.com/photos/random?client_id=" + accessKey + "";
+                    document.unsplashURL = "";
+
+                    if (mode == "prompt") {
+                        var query = prompt("What mood | mode | theme do you want?", defaultQuery);
+                        urlUnsplash += "&query=" + query + "";
+                    }
+                    urlUnsplash += "&w=" + width + "&orientation=" + display + "";
+
+                    const response = await fetch(urlUnsplash);
+                    const unsplash = await response.json();
+                    if (response.ok) {
+                        if (typeof query == 'undefined') {
+                            var string = "![](" + unsplash.urls.regular + ")\n Image by [[" + unsplash.user.name + "]] at [Unsplash](" + unsplash.user.links.html + ")";
+                        } else {
+                            var string = "![](" + unsplash.urls.regular + ")\n'" + query + "' Image by [[" + unsplash.user.name + "]] at [Unsplash](" + unsplash.user.links.html + ")";
+                        }
+                        return (string);
+                    } else {
+                        console.log(data);
+                    }
+                };
+            }
         }
     },
     onunload: () => {
@@ -108,6 +144,14 @@ export default {
     }
 }
 
-function sendConfigAlert() {
-    alert("Please set all required configuration settings via the Roam Depot tab.");
+function sendConfigAlert(key) {
+    if (key == "API") {
+        alert("Please set the API key in the configuration settings via the Roam Depot tab.");
+    } else if (key == "width") {
+        alert("Please set the width as an integer in the configuration settings via the Roam Depot tab.");
+    } else if (key == "display") {
+        alert("Please set the display mode to either landscape, portrait or squarish in the configuration settings via the Roam Depot tab.");
+    } else if (key == "mode") {
+        alert("Please set the import mode to either random or prompt in the configuration settings via the Roam Depot tab.");
+    }
 }
