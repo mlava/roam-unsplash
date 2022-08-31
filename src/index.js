@@ -1,4 +1,4 @@
-import '@omiu/dialog-extention';
+import iziToast from "izitoast";
 
 const config = {
     tabTitle: "Unsplash import",
@@ -97,33 +97,52 @@ async function fetchUnsplash({ extensionAPI }) {
                 }
             }
 
-            urlUnsplash = "https://api.unsplash.com/photos/random?client_id=" + accessKey + "";
             document.unsplashURL = "";
+            urlUnsplash = "https://api.unsplash.com/photos/random?client_id=" + accessKey + "";
             var thisBlock = await window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
 
             if (mode == "prompt") {
-                Omiu.prompt({
-                    msg: 'What mood | mode | theme do you want?',
-                    title: 'Unsplash Import',
-                    cancelButtonText: 'Cancel',
-                    confirmButtonText: 'OK',
-                    onCancel: function () {
-                        alert("You cancelled the search")
-                    },
-                    onConfirm: async function (val) {
-                        urlUnsplash += "&query=" + val + "";
-                        urlUnsplash += "&w=" + width + "&orientation=" + display + "";
-                        const response = await fetch(urlUnsplash);
-                        const unsplash = await response.json();
-                        if (response.ok) {
-                            var string = "![](" + unsplash.urls.regular + ")\n'"+val+"' image by [[" + unsplash.user.name + "]] at [Unsplash](" + unsplash.user.links.html + ")";
-                            await window.roamAlphaAPI.updateBlock({
-                                block: { uid: thisBlock, string: string, open: true } 
-                              })
-                        } else {
-                            console.log(data);
-                        }
-                    }
+                iziToast.question({
+                    color: "blue",
+                    layout: 2,
+                    drag: false,
+                    timeout: 100000,
+                    close: false,
+                    overlay: true,
+                    displayMode: 2,
+                    id: "question",
+                    title: "Unsplash Image Embed",
+                    message:
+                        "What mood | mode | theme do you want?",
+                    position: "center",
+                    inputs: [
+                        [
+                            '<input type="text" placeholder="relaxed">',
+                            "keyup",
+                            function (instance, toast, input, e) {
+                                //console.info(input.value);
+                            },
+                            true,
+                        ],
+                    ],
+                    buttons: [
+                        [
+                            "<button><b>Confirm</b></button>",
+                            function (instance, toast, button, e, inputs) {
+                                getPromptImage(inputs[0].value, urlUnsplash, display, width);
+                                instance.hide({ transitionOut: "fadeOut" }, toast, "button");
+                            },
+                            false,
+                        ],
+                        [
+                            "<button>Cancel</button>",
+                            function (instance, toast, button, e) {
+                                instance.hide({ transitionOut: "fadeOut" }, toast, "button");
+                            },
+                        ],
+                    ],
+                    onClosing: function (instance, toast, closedBy) { },
+                    onClosed: function (instance, toast, closedBy) { },
                 });
             } else {
                 urlUnsplash += "&w=" + width + "&orientation=" + display + "";
@@ -156,3 +175,15 @@ export default {
     onload: onload,
     onunload: onunload
 };
+
+async function getPromptImage(val, urlUnsplash, display, width) {
+    urlUnsplash += "&query=" + val + "&w=" + width + "&orientation=" + display + "";
+    const response = fetch(urlUnsplash);
+    const unsplash = response.json();
+    if (response.ok) {
+        var string = "![](" + unsplash.urls.regular + ")\n Image by [[" + unsplash.user.name + "]] at [Unsplash](" + unsplash.user.links.html + ")";
+        return (string);
+    } else {
+        console.log(data);
+    }
+}
