@@ -61,45 +61,31 @@ function onload({ extensionAPI }) {
         label: "Embed image from Unsplash",            
         callback: () => {
             const uid = window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
+            if (uid == undefined) {
+                alert("Please make sure to focus a block before importing from Unsplash");
+                return;
+            }
             fetchUnsplash({ extensionAPI }).then(async (blocks) => {
                 const parentUid = uid || await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
-                blocks.forEach((node, order) => createBlock({
-                    parentUid,
-                    order,
-                    node
-                }))
+                await window.roamAlphaAPI.updateBlock(
+                    { block: { uid: parentUid, string: blocks[0].text.toString(), open: true } });
             });
-        },/*
-        callback: () => fetchUnsplash({ extensionAPI }).then(string =>
-            window.roamAlphaAPI.updateBlock({
-                block: {
-                    uid: window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"],
-                    string: string,
-                }
-            })
-        ),*/
+        },
     });
     window.roamAlphaAPI.ui.commandPalette.addCommand({
         label: "Embed image from Pexels",
         callback: () => {
             const uid = window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
+            if (uid == undefined) {
+                alert("Please make sure to focus a block before importing from Pexels");
+                return;
+            }
             fetchPexels({ extensionAPI }).then(async (blocks) => {
                 const parentUid = uid || await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
-                blocks.forEach((node, order) => createBlock({
-                    parentUid,
-                    order,
-                    node
-                }))
+                await window.roamAlphaAPI.updateBlock(
+                    { block: { uid: parentUid, string: blocks[0].text.toString(), open: true } });
             });
         },
-        /*callback: () => fetchPexels({ extensionAPI }).then(string =>
-            window.roamAlphaAPI.updateBlock({
-                block: {
-                    uid: window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"],
-                    string: string,
-                }
-            })
-        ),*/
     });
 }
 
@@ -188,7 +174,7 @@ async function fetchUnsplash({ extensionAPI }) {
                     buttons: [
                         [
                             "<button><b>Confirm</b></button>",
-                            function (instance, toast, button, e, inputs) {
+                            async function (instance, toast, button, e, inputs) {
                                 getPromptImage(inputs[0].value, urlUnsplash, thisBlock, display, width);
                                 instance.hide({ transitionOut: "fadeOut" }, toast, "button");
                             },
@@ -196,7 +182,7 @@ async function fetchUnsplash({ extensionAPI }) {
                         ],
                         [
                             "<button>Cancel</button>",
-                            function (instance, toast, button, e) {
+                            async function (instance, toast, button, e) {
                                 instance.hide({ transitionOut: "fadeOut" }, toast, "button");
                             },
                         ],
@@ -210,7 +196,7 @@ async function fetchUnsplash({ extensionAPI }) {
                 const unsplash = await response.json();
                 if (response.ok) {
                     var string = "![](" + unsplash.urls.regular + ")\n Image by [[" + unsplash.user.name + "]] at [Unsplash](" + unsplash.user.links.html + ")";
-                    return (string);
+                    return [{text: string},];
                 } else {
                     console.log(data);
                 }
@@ -295,15 +281,15 @@ async function fetchPexels({ extensionAPI }) {
                     buttons: [
                         [
                             "<button><b>Confirm</b></button>",
-                            function (instance, toast, button, e, inputs) {
+                            async function (instance, toast, button, e, inputs) {
                                 instance.hide({ transitionOut: "fadeOut" }, toast, "button");
-                                return getPromptImageP(inputs[0].value, urlPexels, thisBlock, display, requestOptions);
+                                getPromptImageP(inputs[0].value, urlPexels, thisBlock, display, requestOptions);
                             },
                             false,
                         ],
                         [
                             "<button>Cancel</button>",
-                            function (instance, toast, button, e) {
+                            async function (instance, toast, button, e) {
                                 instance.hide({ transitionOut: "fadeOut" }, toast, "button");
                             },
                         ],
@@ -318,7 +304,7 @@ async function fetchPexels({ extensionAPI }) {
                 const pexels = await response.json();
                 if (response.ok) {
                     var string = "![](" + pexels.photos[0].src.original + ")\n Image by [[" + pexels.photos[0].photographer + "]] at [Pexels](" + pexels.photos[0].photographer_url + ")";
-                    return (string);
+                    return [{text: string},];
                 } else {
                     console.log(data);
                 }
@@ -326,6 +312,39 @@ async function fetchPexels({ extensionAPI }) {
         };
     }
 }
+
+async function getPromptImage(val, urlUnsplash, thisBlock, display, width) {
+    urlUnsplash += "&query=" + val + "&w=" + width + "&orientation=" + display + "";
+    const response = await fetch(urlUnsplash);
+    const unsplash = await response.json();
+    if (response.ok) {
+        var string = "![](" + unsplash.urls.regular + ")\n'" + val + "' image by [[" + unsplash.user.name + "]] at [Unsplash](" + unsplash.user.links.html + ")";
+        await window.roamAlphaAPI.updateBlock(
+            { block: { uid: thisBlock, string: string.toString(), open: true } });
+    } else {
+        console.log(data);
+    }
+}
+
+async function getPromptImageP(val, urlPexels, thisBlock, display, requestOptions) {
+    urlPexels += "?query=" + val + "&orientation=" + display + "&per_page=1";
+    const response = await fetch(urlPexels, requestOptions);
+    //console.info(response);
+    const pexels = await response.json();
+    console.info(pexels);
+    if (response.ok) {
+        var string = "![](" + pexels.photos[0].src.original + ")\n'" + val + "' image by [[" + pexels.photos[0].photographer + "]] at [Pexels](" + pexels.photos[0].photographer_url + ")";
+        await window.roamAlphaAPI.updateBlock(
+            { block: { uid: thisBlock, string: string.toString(), open: true } });
+    } else {
+        console.log(data);
+    }
+}
+
+export default {
+    onload: onload,
+    onunload: onunload
+};
 
 function sendConfigAlert(key) {
     if (key == "APIU") {
@@ -340,34 +359,3 @@ function sendConfigAlert(key) {
         alert("Please set the import mode to either random or prompt in the configuration settings via the Roam Depot tab.");
     }
 }
-
-async function getPromptImage(val, urlUnsplash, thisBlock, display, width) {
-    urlUnsplash += "&query=" + val + "&w=" + width + "&orientation=" + display + "";
-    const response = await fetch(urlUnsplash);
-    const unsplash = await response.json();
-    if (response.ok) {
-        var string = "![](" + unsplash.urls.regular + ")\n'" + val + "' image by [[" + unsplash.user.name + "]] at [Unsplash](" + unsplash.user.links.html + ")";
-        return string;
-    } else {
-        console.log(data);
-    }
-}
-
-async function getPromptImageP(val, urlPexels, thisBlock, display, requestOptions) {
-    urlPexels += "?query=" + val + "&orientation=" + display + "&per_page=1";
-    const response = await fetch(urlPexels, requestOptions);
-    //console.info(response);
-    const pexels = await response.json();
-    console.info(pexels);
-    if (response.ok) {
-        var string = "![](" + pexels.photos[0].src.original + ")\n'" + val + "' image by [[" + pexels.photos[0].photographer + "]] at [Pexels](" + pexels.photos[0].photographer_url + ")";
-        return [ { text: ""+string }, ];
-    } else {
-        console.log(data);
-    }
-}
-
-export default {
-    onload: onload,
-    onunload: onunload
-};
