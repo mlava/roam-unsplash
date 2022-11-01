@@ -1,4 +1,7 @@
-Import an image from Unsplash and format it for your Roam Research graph.
+Import an image from Unsplash or Pexels and format it for your Roam Research graph.
+
+New:
+- import from Pexels. You will need an API key from https://www.pexels.com/api/new/
 
 You can configure the width, display format and whether to download a random image or search for specific theme or mood.
 
