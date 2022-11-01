@@ -36,24 +36,6 @@ const config = {
     ]
 };
 
-const createBlock = (params) => {
-    const uid = window.roamAlphaAPI.util.generateUID();
-    return Promise.all([
-        window.roamAlphaAPI.createBlock({
-            location: {
-                "parent-uid": params.parentUid,
-                order: params.order,
-            },
-            block: {
-                uid,
-                string: params.node.text
-            }
-        })
-    ].concat((params.node.children || []).map((node, order) =>
-        createBlock({ parentUid: uid, order, node })
-    )))
-};
-
 function onload({ extensionAPI }) {
     extensionAPI.settings.panel.create(config);
 
