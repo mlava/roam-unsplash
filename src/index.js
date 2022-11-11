@@ -149,6 +149,10 @@ async function fetchUnsplash({ extensionAPI }) {
                             '<input type="text" placeholder="relaxed">',
                             "keyup",
                             function (instance, toast, input, e) {
+                                if (e.code === "Enter") {
+                                    getPromptImage(e.srcElement.value, urlUnsplash, thisBlock, display, width);
+                                    instance.hide({ transitionOut: "fadeOut" }, toast, "button");
+                                }
                             },
                             true,
                         ],
@@ -255,7 +259,10 @@ async function fetchPexels({ extensionAPI }) {
                             '<input type="text" placeholder="relaxed">',
                             "keyup",
                             function (instance, toast, input, e) {
-                                //console.info(input.value);
+                                if (e.code === "Enter") {
+                                    getPromptImageP(e.srcElement.value, urlPexels, thisBlock, display, requestOptions);
+                                    instance.hide({ transitionOut: "fadeOut" }, toast, "button");
+                                }
                             },
                             true,
                         ],
