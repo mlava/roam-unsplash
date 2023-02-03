@@ -96,9 +96,11 @@ function onload({ extensionAPI }) {
                 return;
             }
             fetchUnsplash({ extensionAPI }).then(async (blocks) => {
-                const parentUid = uid || await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
-                await window.roamAlphaAPI.updateBlock(
-                    { block: { uid: parentUid, string: blocks[0].text.toString(), open: true } });
+                if (blocks != undefined) {
+                    const parentUid = uid || await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
+                    await window.roamAlphaAPI.updateBlock(
+                        { block: { uid: parentUid, string: blocks[0].text.toString(), open: true } });
+                }
             });
         },
     });
@@ -111,9 +113,11 @@ function onload({ extensionAPI }) {
                 return;
             }
             fetchPexels({ extensionAPI }).then(async (blocks) => {
-                const parentUid = uid || await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
-                await window.roamAlphaAPI.updateBlock(
-                    { block: { uid: parentUid, string: blocks[0].text.toString(), open: true } });
+                if (blocks != undefined) {
+                    const parentUid = uid || await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
+                    await window.roamAlphaAPI.updateBlock(
+                        { block: { uid: parentUid, string: blocks[0].text.toString(), open: true } });
+                }
             });
         },
     });
@@ -127,15 +131,17 @@ function onload({ extensionAPI }) {
             }
             fetchPixabay({ extensionAPI }).then(async (blocks) => {
                 const parentUid = uid || await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
-                await window.roamAlphaAPI.updateBlock(
-                    { block: { uid: parentUid, string: blocks[0].text.toString(), open: true } });
+                if (blocks != undefined) {
+                    await window.roamAlphaAPI.updateBlock(
+                        { block: { uid: parentUid, string: blocks[0].text.toString(), open: true } });
 
-                for (var i = 0; i < blocks[0].children.length; i++) {
-                    var thisBlock = window.roamAlphaAPI.util.generateUID();
-                    await window.roamAlphaAPI.createBlock({
-                        location: { "parent-uid": uid, order: i + 1 },
-                        block: { string: blocks[0].children[i].text.toString(), uid: thisBlock }
-                    });
+                    for (var i = 0; i < blocks[0].children.length; i++) {
+                        var thisBlock = window.roamAlphaAPI.util.generateUID();
+                        await window.roamAlphaAPI.createBlock({
+                            location: { "parent-uid": uid, order: i + 1 },
+                            block: { string: blocks[0].children[i].text.toString(), uid: thisBlock }
+                        });
+                    }
                 }
             });
         },
@@ -365,7 +371,7 @@ async function fetchPixabay({ extensionAPI }) {
             mode = extensionAPI.settings.get("pixabay-mode");
 
             urlPixabay = "https://pixabay.com/api/?key=" + accessKey;
-            urlPixabay2 = urlPixabay + "&image_type=photo&safesearch=" + safe + "&editors_choice=" + editor + "&orientation=" + display + "&lang="+lang+"";
+            urlPixabay2 = urlPixabay + "&image_type=photo&safesearch=" + safe + "&editors_choice=" + editor + "&orientation=" + display + "&lang=" + lang + "";
             var thisBlock = await window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
 
             if (mode == "prompt") {
@@ -497,17 +503,21 @@ async function getPromptImagePix(val, url, thisBlock) {
     const response2 = await fetch(urlPixabay3);
     const pixabay = await response2.json();
     if (response2.ok) {
-        var ranNum = randomIntFromInterval(1, pixabay.hits.length) - 1;
-        var usrURL = "https://pixabay.com/users/" + pixabay.hits[ranNum].user + "-" + pixabay.hits[ranNum].user_id + "";
-        var lgURL = "[Large Image](" + pixabay.hits[ranNum].largeImageURL + ")";
-        var string = "![](" + pixabay.hits[ranNum].webformatURL + ")\n Image by [[" + pixabay.hits[ranNum].user + "]] at [Pixabay](" + usrURL + ")";
-        await window.roamAlphaAPI.updateBlock(
-            { block: { uid: thisBlock, string: string.toString(), open: true } });
-        var newBlock = window.roamAlphaAPI.util.generateUID();
-        await window.roamAlphaAPI.createBlock({
-            location: { "parent-uid": thisBlock, order: 1 },
-            block: { string: lgURL.toString(), uid: newBlock }
-        });
+        if (pixabay.hits.length > 0) {
+            var ranNum = randomIntFromInterval(1, pixabay.hits.length) - 1;
+            var usrURL = "https://pixabay.com/users/" + pixabay.hits[ranNum].user + "-" + pixabay.hits[ranNum].user_id + "";
+            var lgURL = "[Large Image](" + pixabay.hits[ranNum].largeImageURL + ")";
+            var string = "![](" + pixabay.hits[ranNum].webformatURL + ")\n Image by [[" + pixabay.hits[ranNum].user + "]] at [Pixabay](" + usrURL + ")";
+            await window.roamAlphaAPI.updateBlock(
+                { block: { uid: thisBlock, string: string.toString(), open: true } });
+            var newBlock = window.roamAlphaAPI.util.generateUID();
+            await window.roamAlphaAPI.createBlock({
+                location: { "parent-uid": thisBlock, order: 1 },
+                block: { string: lgURL.toString(), uid: newBlock }
+            });
+        } else {
+            alert("There were no images available using your search term and settings!")
+        }
     } else {
         console.log(data);
     }
