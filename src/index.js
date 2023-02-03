@@ -318,9 +318,7 @@ async function getPromptImage(val, urlUnsplash, thisBlock, display, width) {
 async function getPromptImageP(val, urlPexels, thisBlock, display, requestOptions) {
     urlPexels += "?query=" + val + "&orientation=" + display + "&per_page=1";
     const response = await fetch(urlPexels, requestOptions);
-    //console.info(response);
     const pexels = await response.json();
-    console.info(pexels);
     if (response.ok) {
         var string = "![](" + pexels.photos[0].src.original + ")\n'" + val + "' image by [[" + pexels.photos[0].photographer + "]] at [Pexels](" + pexels.photos[0].photographer_url + ")";
         await window.roamAlphaAPI.updateBlock(
