@@ -1,19 +1,19 @@
 import iziToast from "izitoast";
 
 const config = {
-    tabTitle: "Unsplash & Pexels Embed",
+    tabTitle: "Unsplash, Pexels & Pixabay Embed",
     settings: [
+        {
+            id: "unsplash-mode",
+            name: "Import mode",
+            description: "random or prompt",
+            action: { type: "input", placeholder: "random" },
+        },
         {
             id: "unsplash-accessKey",
             name: "Unsplash Access key",
             description: "Your Access Key from https://unsplash.com/oauth/applications",
             action: { type: "input", placeholder: "Add Unsplash Access key here" },
-        },
-        {
-            id: "pexels-apiKey",
-            name: "Pexels API key",
-            description: "Your API Key from https://www.pexels.com/api/new/",
-            action: { type: "input", placeholder: "Add Pexels API key here" },
         },
         {
             id: "unsplash-width",
@@ -28,10 +28,40 @@ const config = {
             action: { type: "input", placeholder: "landscape" },
         },
         {
-            id: "unsplash-mode",
-            name: "Import mode",
-            description: "random or prompt",
-            action: { type: "input", placeholder: "random" },
+            id: "pexels-apiKey",
+            name: "Pexels API key",
+            description: "Your API Key from https://www.pexels.com/api/new/",
+            action: { type: "input", placeholder: "Add Pexels API key here" },
+        },
+        {
+            id: "pixabay-apiKey",
+            name: "Pixabay API key",
+            description: "Your API Key from https://pixabay.com/api/docs/",
+            action: { type: "input", placeholder: "Add Pixabay API key here" },
+        },
+        {
+            id: "pixabay-orientation",
+            name: "Pixabay orientation",
+            description: "all, horizontal or vertical",
+            action: { type: "select", items: ["all", "horizontal", "vertical"] },
+        },
+        {
+            id: "pixabay-safesearch",
+            name: "Pixabay safesearch",
+            description: "Only embed images suitable for all ages",
+            action: { type: "switch" },
+        },
+        {
+            id: "pixabay-editors_choice",
+            name: "Pixabay Editor's Choice",
+            description: "Only embed images that have received an Editor's Choice award",
+            action: { type: "switch" },
+        },
+        {
+            id: "pixabay-lang",
+            name: "Pixabay Language Code",
+            description: "Language in which to search",
+            action: { type: "select", items: ["en", "bg", "cs", "da", "de", "el", "es", "fi", "fr", "id", "it", "hu", "ja", "ko", "nl", "no", "pl", "pt", "ro", "ru", "sk", "sv", "th", "tr", "vi", "zh"] },
         },
     ]
 };
@@ -40,7 +70,7 @@ function onload({ extensionAPI }) {
     extensionAPI.settings.panel.create(config);
 
     window.roamAlphaAPI.ui.commandPalette.addCommand({
-        label: "Embed image from Unsplash",            
+        label: "Embed image from Unsplash",
         callback: () => {
             const uid = window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
             if (uid == undefined) {
@@ -66,6 +96,29 @@ function onload({ extensionAPI }) {
                 const parentUid = uid || await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
                 await window.roamAlphaAPI.updateBlock(
                     { block: { uid: parentUid, string: blocks[0].text.toString(), open: true } });
+            });
+        },
+    });
+    window.roamAlphaAPI.ui.commandPalette.addCommand({
+        label: "Embed image from Pixabay",
+        callback: () => {
+            const uid = window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
+            if (uid == undefined) {
+                alert("Please make sure to focus a block before importing from Pixabay");
+                return;
+            }
+            fetchPixabay({ extensionAPI }).then(async (blocks) => {
+                const parentUid = uid || await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
+                await window.roamAlphaAPI.updateBlock(
+                    { block: { uid: parentUid, string: blocks[0].text.toString(), open: true } });
+
+                for (var i = 0; i < blocks[0].children.length; i++) {
+                    var thisBlock = window.roamAlphaAPI.util.generateUID();
+                    await window.roamAlphaAPI.createBlock({
+                        location: { "parent-uid": uid, order: i + 1 },
+                        block: { string: blocks[0].children[i].text.toString(), uid: thisBlock }
+                    });
+                }
             });
         },
     });
@@ -182,7 +235,7 @@ async function fetchUnsplash({ extensionAPI }) {
                 const unsplash = await response.json();
                 if (response.ok) {
                     var string = "![](" + unsplash.urls.regular + ")\n Image by [[" + unsplash.user.name + "]] at [Unsplash](" + unsplash.user.links.html + ")";
-                    return [{text: string},];
+                    return [{ text: string },];
                 } else {
                     console.log(data);
                 }
@@ -293,9 +346,120 @@ async function fetchPexels({ extensionAPI }) {
                 const pexels = await response.json();
                 if (response.ok) {
                     var string = "![](" + pexels.photos[0].src.original + ")\n Image by [[" + pexels.photos[0].photographer + "]] at [Pexels](" + pexels.photos[0].photographer_url + ")";
-                    return [{text: string},];
+                    return [{ text: string },];
                 } else {
                     console.log(data);
+                }
+            }
+        };
+    }
+}
+
+async function fetchPixabay({ extensionAPI }) {
+    var display, mode, key, urlPixabay, urlPixabay2, safe, editor;
+    breakme: {
+        if (!extensionAPI.settings.get("pixabay-apiKey")) {
+            key = "APIPix";
+            sendConfigAlert(key);
+        } else {
+            const accessKey = extensionAPI.settings.get("pixabay-apiKey");
+            display = extensionAPI.settings.get("pixabay-orientation");
+            safe = extensionAPI.settings.get("pixabay-safesearch");
+            editor = extensionAPI.settings.get("pixabay-editors_choice");
+
+            if (!extensionAPI.settings.get("unsplash-mode")) {
+                mode = "random";
+            } else {
+                const regexM = /^random|prompt$/;
+                if (extensionAPI.settings.get("unsplash-mode").match(regexM)) {
+                    mode = extensionAPI.settings.get("unsplash-mode");
+                } else {
+                    key = "mode";
+                    sendConfigAlert(key);
+                    break breakme;
+                }
+            }
+
+            urlPixabay = "https://pixabay.com/api/?key=" + accessKey;
+            urlPixabay2 = urlPixabay + "&image_type=photo&safesearch=" + safe + "&editors_choice=" + editor + "&orientation=" + display + "";
+            var thisBlock = await window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
+
+            if (mode == "prompt") {
+                iziToast.question({
+                    theme: 'light',
+                    color: 'black',
+                    layout: 2,
+                    drag: false,
+                    timeout: false,
+                    close: false,
+                    overlay: true,
+                    displayMode: 2,
+                    id: "question",
+                    title: "Pixabay Image Embed",
+                    message: "What mood | mode | theme do you want?",
+                    position: "center",
+                    inputs: [
+                        [
+                            '<input type="text" placeholder="relaxed">',
+                            "keyup",
+                            function (instance, toast, input, e) {
+                                if (e.code === "Enter") {
+                                    getPromptImagePix(e.srcElement.value, urlPixabay2, thisBlock);
+                                    instance.hide({ transitionOut: "fadeOut" }, toast, "button");
+                                }
+                            },
+                            true,
+                        ],
+                    ],
+                    buttons: [
+                        [
+                            "<button><b>Confirm</b></button>",
+                            async function (instance, toast, button, e, inputs) {
+                                instance.hide({ transitionOut: "fadeOut" }, toast, "button");
+                                getPromptImagePix(inputs[0].value, urlPixabay2, thisBlock);
+                            },
+                            false,
+                        ],
+                        [
+                            "<button>Cancel</button>",
+                            async function (instance, toast, button, e) {
+                                instance.hide({ transitionOut: "fadeOut" }, toast, "button");
+                            },
+                        ],
+                    ],
+                    onClosing: function (instance, toast, closedBy) { },
+                    onClosed: function (instance, toast, closedBy) { },
+                });
+            } else {
+                const response = await fetch(urlPixabay2);
+                const pixabayTotal = await response.json();
+                var pixabayTotalImages = undefined;
+                if (response.ok) {
+                    pixabayTotalImages = parseInt(pixabayTotal.totalHits);
+                } else {
+                    console.log(data);
+                }
+
+                if (pixabayTotalImages != undefined) {
+                    let pageNum = Math.ceil(pixabayTotalImages / 20) + 1;
+                    pageNum = randomIntFromInterval(1, pageNum);
+                    let urlPixabay3 = urlPixabay2 + "&page=" + pageNum + "";
+                    const response2 = await fetch(urlPixabay3);
+                    const pixabay = await response2.json();
+                    if (response2.ok) {
+                        var ranNum = randomIntFromInterval(1, 20) - 1;
+                        var usrURL = "https://pixabay.com/users/" + pixabay.hits[ranNum].user + "-" + pixabay.hits[ranNum].user_id + "";
+                        var lgURL = "[Large Image](" + pixabay.hits[ranNum].largeImageURL + ")";
+                        var string = "![](" + pixabay.hits[ranNum].webformatURL + ")\n Image by [[" + pixabay.hits[ranNum].user + "]] at [Pixabay](" + usrURL + ")";
+                        return [{
+                            text: string,
+                            children: [
+                                { text: lgURL },
+                            ]
+                        }];
+                    } else {
+                        console.log(data);
+                    }
                 }
             }
         };
@@ -328,6 +492,28 @@ async function getPromptImageP(val, urlPexels, thisBlock, display, requestOption
     }
 }
 
+async function getPromptImagePix(val, url, thisBlock) {
+    var pageNum = randomIntFromInterval(1, 26);
+    url += "&q=" + encodeURIComponent(val) + "&page=" + pageNum + "";
+    const response = await fetch(url);
+    const pixabay = await response.json();
+    if (response.ok) {
+        var ranNum = randomIntFromInterval(1, 20) - 1;
+        var usrURL = "https://pixabay.com/users/" + pixabay.hits[ranNum].user + "-" + pixabay.hits[ranNum].user_id + "";
+        var lgURL = "[Large Image](" + pixabay.hits[ranNum].largeImageURL + ")";
+        var string = "![](" + pixabay.hits[ranNum].webformatURL + ")\n Image by [[" + pixabay.hits[ranNum].user + "]] at [Pixabay](" + usrURL + ")";
+        await window.roamAlphaAPI.updateBlock(
+            { block: { uid: thisBlock, string: string.toString(), open: true } });
+        var newBlock = window.roamAlphaAPI.util.generateUID();
+        await window.roamAlphaAPI.createBlock({
+            location: { "parent-uid": thisBlock, order: 1 },
+            block: { string: lgURL.toString(), uid: newBlock }
+        });
+    } else {
+        console.log(data);
+    }
+}
+
 export default {
     onload: onload,
     onunload: onunload
@@ -344,5 +530,11 @@ function sendConfigAlert(key) {
         alert("Please set the display mode to either landscape, portrait or squarish in the configuration settings via the Roam Depot tab.");
     } else if (key == "mode") {
         alert("Please set the import mode to either random or prompt in the configuration settings via the Roam Depot tab.");
+    } else if (key == "APIPix") {
+        alert("Please set your Pixabay API key in the configuration settings via the Roam Depot tab.");
     }
+}
+
+function randomIntFromInterval(min, max) { // min and max included 
+    return Math.floor(Math.random() * (max - min + 1) + min)
 }
