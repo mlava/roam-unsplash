@@ -1,13 +1,31 @@
-Import an image from Unsplash or Pexels and format it for your Roam Research graph.
+Import an image from Unsplash, Pexels or Pixabay and format it for your Roam Research graph.
 
-New:
-- import from Pexels. You will need an API key from https://www.pexels.com/api/new/
+**New:**
+- import from Pixabay. You will need an API key from https://pixabay.com/api/docs/
 
-You can configure the width, display format and whether to download a random image or search for specific theme or mood.
+Configuration Options:
+- Global:
+  - embed a random image or prompt for the search term you wish to use
+  
+- Unsplash:
+  - width
+  - display format
+  
+- Pexels:
+  - display format
+  
+- Pixabay:
+  - orientation
+  - safe search mode
+  - Editor's Choice awardees
+  - language code for search term
 
-You will need to create a developer account at https://unsplash.com/developers.
-Then, create an Application using the demo type, with Public access permissions.
+You will need to create a developer account at https://unsplash.com/developers. Then, create an Application using the demo type, with Public access permissions.
 Finally, obtain your Access Key to enter in the settings in Roam Depot.
+
+For Pexels, you need an API key from: https://www.pexels.com/api/new/
+
+For Pixabay, you need an API key from: https://pixabay.com/api/docs/
 
 This extension can be triggered from the Command Palette.
 
