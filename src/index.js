@@ -5,9 +5,9 @@ const config = {
     settings: [
         {
             id: "unsplash-mode",
-            name: "Import mode",
-            description: "random or prompt",
-            action: { type: "input", placeholder: "random" },
+            name: "Unsplash Import mode",
+            description: "Random or Prompt for a search term",
+            action: { type: "select", items: ["random", "prompt"] },
         },
         {
             id: "unsplash-accessKey",
@@ -23,15 +23,33 @@ const config = {
         },
         {
             id: "unsplash-display",
-            name: "Display mode",
-            description: "portrait, landscape or squarish",
-            action: { type: "input", placeholder: "landscape" },
+            name: "Unsplash Display mode",
+            description: "Format of embedded image",
+            action: { type: "select", items: ["portrait", "landscape", "squarish"] },
+        },
+        {
+            id: "pexels-mode",
+            name: "Pexels Import mode",
+            description: "Random or Prompt for a search term",
+            action: { type: "select", items: ["random", "prompt"] },
         },
         {
             id: "pexels-apiKey",
             name: "Pexels API key",
             description: "Your API Key from https://www.pexels.com/api/new/",
             action: { type: "input", placeholder: "Add Pexels API key here" },
+        },
+        {
+            id: "pexels-display",
+            name: "Pexels Display mode",
+            description: "Format of embedded image",
+            action: { type: "select", items: ["portrait", "landscape", "square"] },
+        },
+        {
+            id: "pixabay-mode",
+            name: "Pixabay Import mode",
+            description: "Random or Prompt for a search term",
+            action: { type: "select", items: ["random", "prompt"] },
         },
         {
             id: "pixabay-apiKey",
@@ -42,13 +60,13 @@ const config = {
         {
             id: "pixabay-orientation",
             name: "Pixabay orientation",
-            description: "all, horizontal or vertical",
+            description: "Format of embedded image",
             action: { type: "select", items: ["all", "horizontal", "vertical"] },
         },
         {
             id: "pixabay-safesearch",
             name: "Pixabay safesearch",
-            description: "Only embed images suitable for all ages",
+            description: "Turn on to only embed images suitable for all ages",
             action: { type: "switch" },
         },
         {
@@ -130,6 +148,9 @@ function onunload() {
     });
     window.roamAlphaAPI.ui.commandPalette.removeCommand({
         label: 'Embed image from Pexels'
+    });
+    window.roamAlphaAPI.ui.commandPalette.removeCommand({
+        label: 'Embed image from Pixabay'
     });
 }
 
@@ -252,34 +273,8 @@ async function fetchPexels({ extensionAPI }) {
             sendConfigAlert(key);
         } else {
             const accessKey = extensionAPI.settings.get("pexels-apiKey");
-            if (!extensionAPI.settings.get("unsplash-display")) {
-                display = "landscape";
-            } else {
-                const regexD = /^landscape|portrait|squarish$/;
-                if (extensionAPI.settings.get("unsplash-display").match(regexD)) {
-                    if (extensionAPI.settings.get("unsplash-display") == "squarish") {
-                        display = "square";
-                    } else {
-                        display = extensionAPI.settings.get("pexels-orientation");
-                    }
-                } else {
-                    key = "display";
-                    sendConfigAlert(key);
-                    break breakme;
-                }
-            }
-            if (!extensionAPI.settings.get("unsplash-mode")) {
-                mode = "random";
-            } else {
-                const regexM = /^random|prompt$/;
-                if (extensionAPI.settings.get("unsplash-mode").match(regexM)) {
-                    mode = extensionAPI.settings.get("unsplash-mode");
-                } else {
-                    key = "mode";
-                    sendConfigAlert(key);
-                    break breakme;
-                }
-            }
+            display = extensionAPI.settings.get("pexels-orientation");
+            mode = extensionAPI.settings.get("pexels-mode");
 
             urlPexels = "https://api.pexels.com/v1/search";
             document.pexelsURL = "";
@@ -356,7 +351,7 @@ async function fetchPexels({ extensionAPI }) {
 }
 
 async function fetchPixabay({ extensionAPI }) {
-    var display, mode, key, urlPixabay, urlPixabay2, safe, editor;
+    var display, mode, key, urlPixabay, urlPixabay2, safe, editor, lang;
     breakme: {
         if (!extensionAPI.settings.get("pixabay-apiKey")) {
             key = "APIPix";
@@ -366,22 +361,11 @@ async function fetchPixabay({ extensionAPI }) {
             display = extensionAPI.settings.get("pixabay-orientation");
             safe = extensionAPI.settings.get("pixabay-safesearch");
             editor = extensionAPI.settings.get("pixabay-editors_choice");
-
-            if (!extensionAPI.settings.get("unsplash-mode")) {
-                mode = "random";
-            } else {
-                const regexM = /^random|prompt$/;
-                if (extensionAPI.settings.get("unsplash-mode").match(regexM)) {
-                    mode = extensionAPI.settings.get("unsplash-mode");
-                } else {
-                    key = "mode";
-                    sendConfigAlert(key);
-                    break breakme;
-                }
-            }
+            lang = extensionAPI.settings.get("pixabay-lang");
+            mode = extensionAPI.settings.get("pixabay-mode");
 
             urlPixabay = "https://pixabay.com/api/?key=" + accessKey;
-            urlPixabay2 = urlPixabay + "&image_type=photo&safesearch=" + safe + "&editors_choice=" + editor + "&orientation=" + display + "";
+            urlPixabay2 = urlPixabay + "&image_type=photo&safesearch=" + safe + "&editors_choice=" + editor + "&orientation=" + display + "&lang="+lang+"";
             var thisBlock = await window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
 
             if (mode == "prompt") {
@@ -447,7 +431,7 @@ async function fetchPixabay({ extensionAPI }) {
                     const response2 = await fetch(urlPixabay3);
                     const pixabay = await response2.json();
                     if (response2.ok) {
-                        var ranNum = randomIntFromInterval(1, 20) - 1;
+                        var ranNum = randomIntFromInterval(1, pixabay.hits.length) - 1;
                         var usrURL = "https://pixabay.com/users/" + pixabay.hits[ranNum].user + "-" + pixabay.hits[ranNum].user_id + "";
                         var lgURL = "[Large Image](" + pixabay.hits[ranNum].largeImageURL + ")";
                         var string = "![](" + pixabay.hits[ranNum].webformatURL + ")\n Image by [[" + pixabay.hits[ranNum].user + "]] at [Pixabay](" + usrURL + ")";
@@ -493,12 +477,27 @@ async function getPromptImageP(val, urlPexels, thisBlock, display, requestOption
 }
 
 async function getPromptImagePix(val, url, thisBlock) {
-    var pageNum = randomIntFromInterval(1, 26);
-    url += "&q=" + encodeURIComponent(val) + "&page=" + pageNum + "";
+    url += "&q=" + encodeURIComponent(val) + "";
     const response = await fetch(url);
-    const pixabay = await response.json();
+    const pixabayTotal = await response.json();
+    var pixabayTotalImages = undefined;
     if (response.ok) {
-        var ranNum = randomIntFromInterval(1, 20) - 1;
+        pixabayTotalImages = parseInt(pixabayTotal.totalHits);
+    } else {
+        console.log(data);
+    }
+
+    var urlPixabay3, pageNum;
+    if (pixabayTotalImages != undefined) {
+        pageNum = Math.ceil(pixabayTotalImages / 20);
+        pageNum = randomIntFromInterval(1, pageNum);
+        urlPixabay3 = url + "&page=" + pageNum + "";
+    }
+
+    const response2 = await fetch(urlPixabay3);
+    const pixabay = await response2.json();
+    if (response2.ok) {
+        var ranNum = randomIntFromInterval(1, pixabay.hits.length) - 1;
         var usrURL = "https://pixabay.com/users/" + pixabay.hits[ranNum].user + "-" + pixabay.hits[ranNum].user_id + "";
         var lgURL = "[Large Image](" + pixabay.hits[ranNum].largeImageURL + ")";
         var string = "![](" + pixabay.hits[ranNum].webformatURL + ")\n Image by [[" + pixabay.hits[ranNum].user + "]] at [Pixabay](" + usrURL + ")";
