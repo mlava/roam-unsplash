@@ -2,9 +2,10 @@ Import an image from Unsplash, Pexels or Pixabay and format it for your Roam Res
 
 **New:**
 - import from Pixabay. You will need an API key from https://pixabay.com/api/docs/
+- mode (random vs prompt) settings are now available for each of Unsplash, Pexels and Pixabay, rather than being shared
 
 Configuration Options:
-- Global:
+- All:
   - embed a random image or prompt for the search term you wish to use
   
 - Unsplash:
