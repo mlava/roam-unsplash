@@ -87,7 +87,7 @@ const config = {
 function onload({ extensionAPI }) {
     extensionAPI.settings.panel.create(config);
 
-    window.roamAlphaAPI.ui.commandPalette.addCommand({
+    extensionAPI.ui.commandPalette.addCommand({
         label: "Embed image from Unsplash",
         callback: () => {
             const uid = window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
@@ -104,7 +104,7 @@ function onload({ extensionAPI }) {
             });
         },
     });
-    window.roamAlphaAPI.ui.commandPalette.addCommand({
+    extensionAPI.ui.commandPalette.addCommand({
         label: "Embed image from Pexels",
         callback: () => {
             const uid = window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
@@ -121,7 +121,7 @@ function onload({ extensionAPI }) {
             });
         },
     });
-    window.roamAlphaAPI.ui.commandPalette.addCommand({
+    extensionAPI.ui.commandPalette.addCommand({
         label: "Embed image from Pixabay",
         callback: () => {
             const uid = window.roamAlphaAPI.ui.getFocusedBlock()?.["block-uid"];
@@ -149,15 +149,6 @@ function onload({ extensionAPI }) {
 }
 
 function onunload() {
-    window.roamAlphaAPI.ui.commandPalette.removeCommand({
-        label: 'Embed image from Unsplash'
-    });
-    window.roamAlphaAPI.ui.commandPalette.removeCommand({
-        label: 'Embed image from Pexels'
-    });
-    window.roamAlphaAPI.ui.commandPalette.removeCommand({
-        label: 'Embed image from Pixabay'
-    });
 }
 
 async function fetchUnsplash({ extensionAPI }) {
